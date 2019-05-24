@@ -23,8 +23,13 @@ class Lexer
     std::string       m_buffer;
     Token             m_current_token;
 
+
     // Internally used methods
-    bool handle_buffer();
+    void set_buffer_to_token();
+    void register_current_token();
+
+    // Nicer spelling conditions
+    bool buffer_has_content() const;
 
 public:
     TokenArray tokenize(std::string_view);

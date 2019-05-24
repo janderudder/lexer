@@ -1,5 +1,5 @@
 #pragma once
-#include <any>
+#include <string>
 
 struct Token
 {
@@ -14,6 +14,6 @@ struct Token
                 END_SOURCE   };
 
     Id          id          = UNASSIGNED;
-    std::any    value;
+    std::string value;
 
 };

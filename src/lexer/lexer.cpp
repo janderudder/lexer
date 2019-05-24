@@ -14,23 +14,27 @@
 #include "lexer/utils.hpp"
 
 /**
- * Private internal method
+ * Private internal methods
  */
-bool Lexer::handle_buffer()
+void Lexer::set_buffer_to_token()
 {
-    if (!m_buffer.empty())
-    {
-        if (m_current_token.id == Token::LIT_NUMBER)
-            m_current_token.value = to_number(m_buffer);
-
-        else if (m_current_token.id == Token::IDENTIFIER
-                || m_current_token.id == Token::LIT_STRING)
-            m_current_token.value = m_buffer;
-
-        return true;
-    }
-    return false;
+    m_current_token.value = m_buffer;
 }
+
+
+
+void Lexer::register_current_token()
+{
+    m_tokens.push(m_current_token);
+}
+
+
+
+bool Lexer::buffer_has_content() const
+{
+    return !m_buffer.empty();
+}
+
 
 
 /**
@@ -48,7 +52,7 @@ TokenArray Lexer::tokenize(std::string_view source)
     {
         m_buffer.clear();
         m_current_token.id = Token::UNASSIGNED;
-        m_current_token.value.reset();
+        m_current_token.value.clear();
 
         for (m_source_index++; m_source_index < source.size(); ++m_source_index)
         {
@@ -68,13 +72,16 @@ TokenArray Lexer::tokenize(std::string_view source)
             case '+': case '*': case '=':
 
                 if (m_current_token.id != Token::UNASSIGNED) {
-                    if (handle_buffer())
-                        m_tokens.push(m_current_token);
+                    if (buffer_has_content()) {
+                        set_buffer_to_token();
+                        register_current_token();
+                    }
                 }
 
                 m_current_token.id = Token::BINARY_OP;
                 m_current_token.value = c;
-                loop_break = true;
+                m_buffer.clear();
+                register_current_token();
 
             break;
 
@@ -82,8 +89,8 @@ TokenArray Lexer::tokenize(std::string_view source)
 
             case '-':
 
-                if (!m_buffer.empty() && m_current_token.id != Token::LIT_STRING)
-                    throw LexerSyntaxError{std::move(m_current_token), m_source_index};
+                if (buffer_has_content() && m_current_token.id != Token::LIT_STRING)
+                    throw LexerSyntaxError{m_current_token, m_source_index};
 
                 m_buffer += '-';
 
@@ -93,11 +100,11 @@ TokenArray Lexer::tokenize(std::string_view source)
 
             case '"':
 
-                if (m_buffer.empty() && m_current_token.id == Token::UNASSIGNED)
+                if (!buffer_has_content() && m_current_token.id == Token::UNASSIGNED)
                     m_current_token.id = Token::LIT_STRING;
 
                 else if (m_current_token.id != Token::LIT_STRING)
-                    throw LexerSyntaxError{std::move(m_current_token), m_source_index};
+                    throw LexerSyntaxError{m_current_token, m_source_index};
 
             break;
 
@@ -116,7 +123,7 @@ TokenArray Lexer::tokenize(std::string_view source)
                     case Token::LIT_STRING:
                         break;  // valid case
                     default:
-                        throw LexerSyntaxError{std::move(m_current_token), m_source_index};
+                        throw LexerSyntaxError{m_current_token, m_source_index};
                 }
 
                 m_buffer += c;
@@ -136,7 +143,7 @@ TokenArray Lexer::tokenize(std::string_view source)
             case 'W': case 'X': case 'Y': case 'Z': case '_':
 
                 if (m_current_token.id == Token::LIT_NUMBER)
-                    throw LexerSyntaxError{std::move(m_current_token), m_source_index};
+                    throw LexerSyntaxError{m_current_token, m_source_index};
 
                 else if (m_current_token.id == Token::UNASSIGNED)
                     m_current_token.id = Token::IDENTIFIER;
@@ -163,11 +170,12 @@ TokenArray Lexer::tokenize(std::string_view source)
             m_lexing_continues = false;
 
         // ...or maybe we stored some characters.
-        handle_buffer();
+        if (buffer_has_content())
+            set_buffer_to_token();
 
         // Register the current token
         if (m_current_token.id != Token::UNASSIGNED)
-            m_tokens.push(m_current_token);
+            register_current_token();
 
     }
 
