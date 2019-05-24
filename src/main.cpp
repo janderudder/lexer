@@ -8,10 +8,10 @@
  *      - Validate source code by aborting with an error if it is invalid.
  *
  */
-#include "TokenArray.hpp"
-#include "exceptions.hpp"
-#include "Lexer.hpp"
-#include "utils.hpp"
+#include "lexer/TokenArray.hpp"
+#include "lexer/exceptions.hpp"
+#include "lexer/lexer.hpp"
+#include "lexer/utils.hpp"
 #include "test/test.hpp"
 
 #include <cstdio>

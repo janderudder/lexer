@@ -1,6 +1,6 @@
 #pragma once
 #include <stdexcept>
-#include "Token.hpp"
+#include "lexer/Token.hpp"
 
 struct LexerSyntaxError : virtual public std::runtime_error
 {

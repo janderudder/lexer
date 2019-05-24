@@ -8,10 +8,10 @@
  *      - Validate source code by aborting with an error if it is invalid.
  *
  */
-#include "Token.hpp"
-#include "exceptions.hpp"
-#include "lexer.hpp"
-#include "utils.hpp"
+#include "lexer/Token.hpp"
+#include "lexer/exceptions.hpp"
+#include "lexer/lexer.hpp"
+#include "lexer/utils.hpp"
 #include <string>
 
 

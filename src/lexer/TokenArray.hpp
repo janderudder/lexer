@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include "Token.hpp"
+#include "lexer/Token.hpp"
 
 /**
  *  Lexer's output
