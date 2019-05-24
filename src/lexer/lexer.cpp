@@ -16,9 +16,18 @@
 /**
  * Private internal methods
  */
-void Lexer::set_buffer_to_token()
+void Lexer::begin_new_token(Token::Id id)
 {
-    m_current_token.value = m_buffer;
+    m_current_token.id = id;
+    m_current_token.value.clear();
+}
+
+
+
+void Lexer::begin_new_token(Token::Id id, const char begin_content)
+{
+    m_current_token.id = id;
+    m_current_token.value = begin_content;
 }
 
 
@@ -30,11 +39,25 @@ void Lexer::register_current_token()
 
 
 
-bool Lexer::buffer_has_content() const
+bool Lexer::curr_token_has_value() const
 {
-    return !m_buffer.empty();
+    return !m_current_token.value.empty();
 }
 
+
+
+bool Lexer::curr_token_is_clear() const
+{
+    return m_current_token.id == Token::UNASSIGNED
+        && m_current_token.value.empty();
+}
+
+
+
+void Lexer::curr_token_value_append(const char c)
+{
+    m_current_token.value += c;
+}
 
 
 /**
@@ -42,142 +65,82 @@ bool Lexer::buffer_has_content() const
  */
 TokenArray Lexer::tokenize(std::string_view source)
 {
-    // (re)init. fields
+    m_source_index = 0;
     m_tokens.clear();
-    m_lexing_continues    = true;
-    m_source_index        = -1;
+    begin_new_token();
 
-
-    while (m_lexing_continues)
+    while (m_source_index != source.size())
     {
-        m_buffer.clear();
-        m_current_token.id = Token::UNASSIGNED;
-        m_current_token.value.clear();
+        const char c = source[m_source_index];
 
-        for (m_source_index++; m_source_index < source.size(); ++m_source_index)
+        switch (c)
         {
-            bool loop_break = false;
-            const char c = source[m_source_index];
+        case ' ': case '\t': case '\n': case '\0':
 
-            switch (c)
+            if (!curr_token_is_clear())
             {
-            case ' ': case '\t': case '\n':
-
-                loop_break = true;
-
-            break;
-
-
-
-            case '+': case '*': case '=':
-
-                if (m_current_token.id != Token::UNASSIGNED) {
-                    if (buffer_has_content()) {
-                        set_buffer_to_token();
-                        register_current_token();
-                    }
-                }
-
-                m_current_token.id = Token::BINARY_OP;
-                m_current_token.value = c;
-                m_buffer.clear();
                 register_current_token();
-
-            break;
-
-
-
-            case '-':
-
-                if (buffer_has_content() && m_current_token.id != Token::LIT_STRING)
-                    throw LexerSyntaxError{m_current_token, m_source_index};
-
-                m_buffer += '-';
-
-            break;
-
-
-
-            case '"':
-
-                if (!buffer_has_content() && m_current_token.id == Token::UNASSIGNED)
-                    m_current_token.id = Token::LIT_STRING;
-
-                else if (m_current_token.id != Token::LIT_STRING)
-                    throw LexerSyntaxError{m_current_token, m_source_index};
-
-            break;
-
-
-
-            case '0': case '1': case '2': case '3': case '4':
-            case '5': case '6': case '7': case '8': case '9':
-
-                if (m_current_token.id == Token::UNASSIGNED) {
-                    m_current_token.id = Token::LIT_NUMBER;
-                }
-
-                else switch (m_current_token.id) {    // Verify syntax validity
-                    case Token::IDENTIFIER:
-                    case Token::LIT_NUMBER:
-                    case Token::LIT_STRING:
-                        break;  // valid case
-                    default:
-                        throw LexerSyntaxError{m_current_token, m_source_index};
-                }
-
-                m_buffer += c;
-
-            break;
-
-
-
-            case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
-            case 'g': case 'h': case 'i': case 'j': case 'k': case 'l':
-            case 'm': case 'n': case 'o': case 'p': case 'q': case 'r':
-            case 's': case 't': case 'u': case 'v': case 'w': case 'x':
-            case 'y': case 'z': case 'A': case 'B': case 'C': case 'D':
-            case 'E': case 'F': case 'G': case 'H': case 'I': case 'J':
-            case 'K': case 'L': case 'M': case 'N': case 'O': case 'P':
-            case 'Q': case 'R': case 'S': case 'T': case 'U': case 'V':
-            case 'W': case 'X': case 'Y': case 'Z': case '_':
-
-                if (m_current_token.id == Token::LIT_NUMBER)
-                    throw LexerSyntaxError{m_current_token, m_source_index};
-
-                else if (m_current_token.id == Token::UNASSIGNED)
-                    m_current_token.id = Token::IDENTIFIER;
-
-                m_buffer += c;
-
-            break;
-
-
-
-            default:
-            break;
+                begin_new_token();
             }
 
-
-            if (loop_break) break;  // Escape from the inner loop
-
-        } // inner loop end
+        break;
 
 
-        // Since we got out of the inner loop, perform a series of checks:
-        // maybe we went over all the source...
-        if (m_source_index == source.size())
-            m_lexing_continues = false;
+        case '0': case '1': case '2': case '3': case '4':
+        case '5': case '6': case '7': case '8': case '9':
 
-        // ...or maybe we stored some characters.
-        if (buffer_has_content())
-            set_buffer_to_token();
+            if (curr_token_is_clear())
+                begin_new_token(Token::LIT_NUMBER);
 
-        // Register the current token
-        if (m_current_token.id != Token::UNASSIGNED)
+            curr_token_value_append(c);
+
+        break;
+
+
+        case '+': case '*': case '=':
+
+            if (!curr_token_is_clear())
+            {
+                register_current_token();
+            }
+
+            begin_new_token(Token::BINARY_OP, c);
             register_current_token();
+            begin_new_token();
+
+        break;
+
+
+        case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
+        case 'g': case 'h': case 'i': case 'j': case 'k': case 'l':
+        case 'm': case 'n': case 'o': case 'p': case 'q': case 'r':
+        case 's': case 't': case 'u': case 'v': case 'w': case 'x':
+        case 'y': case 'z': case 'A': case 'B': case 'C': case 'D':
+        case 'E': case 'F': case 'G': case 'H': case 'I': case 'J':
+        case 'K': case 'L': case 'M': case 'N': case 'O': case 'P':
+        case 'Q': case 'R': case 'S': case 'T': case 'U': case 'V':
+        case 'W': case 'X': case 'Y': case 'Z': case '_':
+
+            if (curr_token_is_clear())
+            {
+                begin_new_token(Token::IDENTIFIER, c);
+            }
+
+            curr_token_value_append(c);
+
+        break;
+
+
+        default:
+        break;
+        }
+
+        ++m_source_index;
 
     }
+
+    if (!curr_token_is_clear())
+        register_current_token();
 
     return m_tokens;
 

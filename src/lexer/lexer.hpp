@@ -19,17 +19,17 @@ class Lexer
     // Fields used while scanning
     TokenArray        m_tokens;
     std::size_t       m_source_index;
-    bool              m_lexing_continues;
-    std::string       m_buffer;
     Token             m_current_token;
 
-
     // Internally used methods
-    void set_buffer_to_token();
+    void begin_new_token(Token::Id =Token::UNASSIGNED);
+    void begin_new_token(Token::Id, const char c);
     void register_current_token();
+    void curr_token_value_append(const char);
 
     // Nicer spelling conditions
-    bool buffer_has_content() const;
+    bool curr_token_has_value() const;
+    bool curr_token_is_clear() const;
 
 public:
     TokenArray tokenize(std::string_view);
