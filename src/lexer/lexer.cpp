@@ -4,7 +4,7 @@
  *  Lexer implementation.
  *
  *  The lexer is supposed to:
- *      - Transform valid source code into a sorted array of tokens.
+ *      - Transform valid source code into a sorted array of m_tokens.
  *      - Validate source code by aborting with an error if it is invalid.
  *
  */
@@ -12,25 +12,48 @@
 #include "lexer/Token.hpp"
 #include "lexer/exceptions.hpp"
 #include "lexer/utils.hpp"
-#include <string>
+
+/**
+ * Private internal method
+ */
+bool Lexer::handle_buffer()
+{
+    if (!m_buffer.empty())
+    {
+        if (m_current_token.id == Token::LIT_NUMBER)
+            m_current_token.value = to_number(m_buffer);
+
+        else if (m_current_token.id == Token::IDENTIFIER
+                || m_current_token.id == Token::LIT_STRING)
+            m_current_token.value = m_buffer;
+
+        return true;
+    }
+    return false;
+}
 
 
+/**
+ * Public interface
+ */
 TokenArray Lexer::tokenize(std::string_view source)
 {
-    TokenArray                  tokens;
-    bool                        lexing_continues    = true;
-    std::size_t                 source_index        = -1;
+    // (re)init. fields
+    m_tokens.clear();
+    m_lexing_continues    = true;
+    m_source_index        = -1;
 
 
-    while (lexing_continues)
+    while (m_lexing_continues)
     {
-        std::string buffer;
-        Token       token;
+        m_buffer.clear();
+        m_current_token.id = Token::UNASSIGNED;
+        m_current_token.value.reset();
 
-        for (source_index++; source_index < source.size(); ++source_index)
+        for (m_source_index++; m_source_index < source.size(); ++m_source_index)
         {
             bool loop_break = false;
-            const char c = source[source_index];
+            const char c = source[m_source_index];
 
             switch (c)
             {
@@ -44,8 +67,13 @@ TokenArray Lexer::tokenize(std::string_view source)
 
             case '+': case '*': case '=':
 
-                token.id = Token::BINARY_OP;
-                token.value = c;
+                if (m_current_token.id != Token::UNASSIGNED) {
+                    if (handle_buffer())
+                        m_tokens.push(m_current_token);
+                }
+
+                m_current_token.id = Token::BINARY_OP;
+                m_current_token.value = c;
                 loop_break = true;
 
             break;
@@ -54,10 +82,10 @@ TokenArray Lexer::tokenize(std::string_view source)
 
             case '-':
 
-                if (!buffer.empty() && token.id != Token::LIT_STRING)
-                    throw LexerSyntaxError{std::move(token), source_index};
+                if (!m_buffer.empty() && m_current_token.id != Token::LIT_STRING)
+                    throw LexerSyntaxError{std::move(m_current_token), m_source_index};
 
-                buffer += '-';
+                m_buffer += '-';
 
             break;
 
@@ -65,11 +93,11 @@ TokenArray Lexer::tokenize(std::string_view source)
 
             case '"':
 
-                if (buffer.empty() && token.id == Token::UNASSIGNED)
-                    token.id = Token::LIT_STRING;
+                if (m_buffer.empty() && m_current_token.id == Token::UNASSIGNED)
+                    m_current_token.id = Token::LIT_STRING;
 
-                else if (token.id != Token::LIT_STRING)
-                    throw LexerSyntaxError{std::move(token), source_index};
+                else if (m_current_token.id != Token::LIT_STRING)
+                    throw LexerSyntaxError{std::move(m_current_token), m_source_index};
 
             break;
 
@@ -78,20 +106,20 @@ TokenArray Lexer::tokenize(std::string_view source)
             case '0': case '1': case '2': case '3': case '4':
             case '5': case '6': case '7': case '8': case '9':
 
-                if (token.id == Token::UNASSIGNED) {
-                    token.id = Token::LIT_NUMBER;
+                if (m_current_token.id == Token::UNASSIGNED) {
+                    m_current_token.id = Token::LIT_NUMBER;
                 }
 
-                else switch (token.id) {    // Verify syntax validity
+                else switch (m_current_token.id) {    // Verify syntax validity
                     case Token::IDENTIFIER:
                     case Token::LIT_NUMBER:
                     case Token::LIT_STRING:
                         break;  // valid case
                     default:
-                        throw LexerSyntaxError{std::move(token), source_index};
+                        throw LexerSyntaxError{std::move(m_current_token), m_source_index};
                 }
 
-                buffer += c;
+                m_buffer += c;
 
             break;
 
@@ -107,13 +135,13 @@ TokenArray Lexer::tokenize(std::string_view source)
             case 'Q': case 'R': case 'S': case 'T': case 'U': case 'V':
             case 'W': case 'X': case 'Y': case 'Z': case '_':
 
-                if (token.id == Token::LIT_NUMBER)
-                    throw LexerSyntaxError{std::move(token), source_index};
+                if (m_current_token.id == Token::LIT_NUMBER)
+                    throw LexerSyntaxError{std::move(m_current_token), m_source_index};
 
-                else if (token.id == Token::UNASSIGNED)
-                    token.id = Token::IDENTIFIER;
+                else if (m_current_token.id == Token::UNASSIGNED)
+                    m_current_token.id = Token::IDENTIFIER;
 
-                buffer += c;
+                m_buffer += c;
 
             break;
 
@@ -131,26 +159,18 @@ TokenArray Lexer::tokenize(std::string_view source)
 
         // Since we got out of the inner loop, perform a series of checks:
         // maybe we went over all the source...
-        if (source_index == source.size())
-            lexing_continues = false;
+        if (m_source_index == source.size())
+            m_lexing_continues = false;
 
         // ...or maybe we stored some characters.
-        if (!buffer.empty())
-        {
-            if (token.id == Token::LIT_NUMBER)
-                token.value = to_number(buffer);
+        handle_buffer();
 
-            else if (token.id == Token::IDENTIFIER
-                    || token.id == Token::LIT_STRING)
-                token.value = buffer;
-        }
-
-        // Register this token
-        if (token.id != Token::UNASSIGNED)
-            tokens.push(std::move(token));
+        // Register the current token
+        if (m_current_token.id != Token::UNASSIGNED)
+            m_tokens.push(m_current_token);
 
     }
 
-    return tokens;
+    return m_tokens;
 
 }

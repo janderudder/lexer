@@ -34,7 +34,8 @@ int LEXER_DRIVER_FN()
 
     try
     {
-        TokenArray tokens = Lexer::tokenize(source);
+        Lexer lexer;
+        TokenArray tokens = lexer.tokenize(source);
 
         // Show scanned tokens
         display_token_array(tokens);

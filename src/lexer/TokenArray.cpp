@@ -22,6 +22,13 @@ void TokenArray::pop()
 
 
 
+void TokenArray::clear()
+{
+    m_tokens.clear();
+}
+
+
+
 const Token& TokenArray::operator[](std::size_t idx) const
 {
     return m_tokens[idx];

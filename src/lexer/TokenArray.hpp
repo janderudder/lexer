@@ -14,6 +14,7 @@ public:
     void            push(const Token&);
     void            push(Token&&);
     void            pop();
+    void            clear();
 
     // Access
     const Token&    operator[](std::size_t) const;

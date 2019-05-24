@@ -9,10 +9,24 @@
  *
  */
 #pragma once
+#include "lexer/Token.hpp"
 #include "lexer/TokenArray.hpp"
+#include <string>
 #include <string_view>
 
-struct Lexer
+class Lexer
 {
-    static TokenArray tokenize(std::string_view);
+    // Fields used while scanning
+    TokenArray        m_tokens;
+    std::size_t       m_source_index;
+    bool              m_lexing_continues;
+    std::string       m_buffer;
+    Token             m_current_token;
+
+    // Internally used methods
+    bool handle_buffer();
+
+public:
+    TokenArray tokenize(std::string_view);
+
 };
