@@ -8,14 +8,14 @@
  *      - Validate source code by aborting with an error if it is invalid.
  *
  */
+#include "lexer/Lexer.hpp"
 #include "lexer/Token.hpp"
 #include "lexer/exceptions.hpp"
-#include "lexer/lexer.hpp"
 #include "lexer/utils.hpp"
 #include <string>
 
 
-TokenArray tokenize(std::string_view source)
+TokenArray Lexer::tokenize(std::string_view source)
 {
     TokenArray                  tokens;
     bool                        lexing_continues    = true;

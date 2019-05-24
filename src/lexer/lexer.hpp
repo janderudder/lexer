@@ -12,4 +12,7 @@
 #include "lexer/TokenArray.hpp"
 #include <string_view>
 
-TokenArray tokenize(std::string_view);
+struct Lexer
+{
+    static TokenArray tokenize(std::string_view);
+};

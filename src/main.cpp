@@ -8,9 +8,9 @@
  *      - Validate source code by aborting with an error if it is invalid.
  *
  */
+#include "lexer/Lexer.hpp"
 #include "lexer/TokenArray.hpp"
 #include "lexer/exceptions.hpp"
-#include "lexer/lexer.hpp"
 #include "lexer/utils.hpp"
 #include "test/test.hpp"
 
@@ -34,7 +34,7 @@ int LEXER_DRIVER_FN()
 
     try
     {
-        TokenArray tokens = tokenize(source);
+        TokenArray tokens = Lexer::tokenize(source);
 
         // Show scanned tokens
         display_token_array(tokens);
