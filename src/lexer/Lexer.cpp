@@ -60,6 +60,43 @@ void Lexer::curr_token_value_append(const char c)
 }
 
 
+
+void Lexer::register_and_begin(Token::Id id)
+{
+    if (m_current_token.id != Token::UNASSIGNED)
+        m_tokens.push(m_current_token);
+
+    m_current_token.id = id;
+    m_current_token.value.clear();
+}
+
+
+
+void Lexer::register_and_begin(Token::Id id, const char begin_content)
+{
+    if (m_current_token.id != Token::UNASSIGNED)
+        m_tokens.push(m_current_token);
+
+    m_current_token.id = id;
+    m_current_token.value = begin_content;
+}
+
+
+/**
+ * Error handling
+ */
+void Lexer::specify_valid_ids(const std::vector<Token::Id>& plop) const
+{
+    bool ok=false;
+    for (const auto& state : plop) {
+        if (m_current_token.id == state) {
+            ok=true;
+            break;
+    }}
+    if (!ok) { throw LexerSyntaxError(m_current_token, m_source_index); }
+}
+
+
 /**
  * Public interface
  */
@@ -123,11 +160,38 @@ TokenArray Lexer::tokenize(std::string_view source)
 
             if (curr_token_is_clear())
             {
-                begin_new_token(Token::IDENTIFIER, c);
+                begin_new_token(Token::IDENTIFIER);
+            }
+            else { // error handling
+                specify_valid_ids({Token::IDENTIFIER, Token::LIT_STRING});
             }
 
             curr_token_value_append(c);
 
+        break;
+
+
+        case '(':
+            register_and_begin(Token::BEGIN_GROUP);
+            register_and_begin();
+        break;
+
+
+        case ')':
+            register_and_begin(Token::END_GROUP);
+            register_and_begin();
+        break;
+
+
+        case '{':
+            register_and_begin(Token::BEGIN_BLOCK);
+            register_and_begin();
+        break;
+
+
+        case '}':
+            register_and_begin(Token::END_BLOCK);
+            register_and_begin();
         break;
 
 

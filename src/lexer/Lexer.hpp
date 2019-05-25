@@ -31,7 +31,17 @@ class Lexer
     bool curr_token_has_value() const;
     bool curr_token_is_clear() const;
 
+    // Combination of previous two categories
+    // of methods
+    void register_and_begin(Token::Id =Token::UNASSIGNED);
+    void register_and_begin(Token::Id, const char c);
+
+    // Error handling
+    void specify_valid_ids(const std::vector<Token::Id>& plop) const;
+
 public:
+    // Main public functionality
     TokenArray tokenize(std::string_view);
+
 
 };
