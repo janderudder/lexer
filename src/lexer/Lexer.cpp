@@ -4,7 +4,7 @@
  *  Lexer implementation.
  *
  *  The lexer is supposed to:
- *      - Transform valid source code into a sorted array of m_tokens.
+ *      - Transform valid source code into a sorted array of tokens.
  *      - Validate source code by aborting with an error if it is invalid.
  *
  */
