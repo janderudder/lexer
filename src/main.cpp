@@ -12,6 +12,7 @@
 #include "lexer/TokenArray.hpp"
 #include "lexer/exceptions.hpp"
 #include "test/test.hpp"
+#include "timing/Chronometer.hpp"
 #include "input.hpp"
 
 #include <cstdio>
@@ -29,13 +30,24 @@ int LEXER_DRIVER_FN()
 {
     const auto source = load_source_file("src/lexer/Lexer.cpp");
 
+    Chronometer chrono;
+
     try
     {
         Lexer lexer;
+
+        chrono.start();
         TokenArray tokens = lexer.tokenize(source);
+        chrono.stop();
 
         // Show scanned tokens
         display_token_array(tokens);
+
+        // Display time
+        std::cout
+            << "Tokenized in : "
+            << chrono.read().as_microseconds()
+            << " us\n";
     }
 
     catch (const LexerSyntaxError& e)
