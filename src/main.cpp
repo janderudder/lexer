@@ -12,10 +12,13 @@
 #include "lexer/TokenArray.hpp"
 #include "lexer/exceptions.hpp"
 #include "test/test.hpp"
+#include "input.hpp"
 
 #include <cstdio>
+#include <fstream>
 #include <iostream>
 #include <string>
+#include <string_view>
 
 #ifndef LEXER_DRIVER_FN
 #define LEXER_DRIVER_FN main
@@ -24,12 +27,7 @@
 
 int LEXER_DRIVER_FN()
 {
-    std::cout <<
-        "You may enter the source code here.\n"
-        "A semicolon indicates the end of the string.\n\n> ";
-
-    std::string source;
-    std::getline(std::cin, source, ';');
+    const auto source = load_source_file("src/lexer/Lexer.cpp");
 
     try
     {
