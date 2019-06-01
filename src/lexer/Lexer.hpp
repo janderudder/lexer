@@ -37,7 +37,8 @@ class Lexer
     void register_and_begin(Token::Id, const char c);
 
     // Error handling
-    void specify_valid_ids(const std::vector<Token::Id>& plop) const;
+    bool curr_id_is_one_of(const std::vector<Token::Id>& plop) const;
+    void throw_current_state() const;
 
 public:
     // Main public functionality

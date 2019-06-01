@@ -11,7 +11,6 @@
 #include "lexer/Lexer.hpp"
 #include "lexer/Token.hpp"
 #include "lexer/exceptions.hpp"
-#include "lexer/utils.hpp"
 
 /**
  * Private internal methods
@@ -85,15 +84,20 @@ void Lexer::register_and_begin(Token::Id id, const char begin_content)
 /**
  * Error handling
  */
-void Lexer::specify_valid_ids(const std::vector<Token::Id>& plop) const
+bool Lexer::curr_id_is_one_of(const std::vector<Token::Id>& ids_array) const
 {
-    bool ok=false;
-    for (const auto& state : plop) {
-        if (m_current_token.id == state) {
-            ok=true;
-            break;
-    }}
-    if (!ok) { throw LexerSyntaxError(m_current_token, m_source_index); }
+    for (const auto id : ids_array) {
+        if (m_current_token.id == id)
+            return true;
+    }
+    return false;
+}
+
+
+
+void Lexer::throw_current_state() const
+{
+    throw LexerSyntaxError{m_current_token, m_source_index};
 }
 
 
@@ -162,8 +166,10 @@ TokenArray Lexer::tokenize(std::string_view source)
             {
                 begin_new_token(Token::IDENTIFIER);
             }
-            else { // error handling
-                specify_valid_ids({Token::IDENTIFIER, Token::LIT_STRING});
+
+            else if (!curr_id_is_one_of({Token::IDENTIFIER, Token::LIT_STRING}))
+            {
+                throw_current_state();
             }
 
             curr_token_value_append(c);

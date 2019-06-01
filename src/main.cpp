@@ -11,7 +11,6 @@
 #include "lexer/Lexer.hpp"
 #include "lexer/TokenArray.hpp"
 #include "lexer/exceptions.hpp"
-#include "lexer/utils.hpp"
 #include "test/test.hpp"
 
 #include <cstdio>
