@@ -29,14 +29,13 @@
 int LEXER_DRIVER_FN()
 {
     const auto source = load_source_file("src/lexer/Lexer.cpp");
-
     Chronometer chrono;
 
     try
     {
         Lexer lexer;
-
         chrono.start();
+
         TokenArray tokens = lexer.tokenize(source);
         chrono.stop();
 

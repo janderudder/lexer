@@ -11,7 +11,8 @@ struct Token
                 LIT_STRING,
                 IDENTIFIER,
                 END_INSTRUCTION,
-                END_SOURCE   };
+                END_SOURCE
+            };
 
     Id          id          = UNASSIGNED;
     std::string value;

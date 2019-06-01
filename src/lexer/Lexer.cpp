@@ -13,7 +13,13 @@
 #include "lexer/exceptions.hpp"
 
 /**
- * Private internal methods
+ *  Static member
+ */
+Category_Map Lexer::m_category_map;
+
+
+/**
+ *  Private internal methods
  */
 void Lexer::begin_new_token(Token::Id id)
 {
@@ -53,6 +59,17 @@ bool Lexer::curr_token_is_clear() const
 
 
 
+bool Lexer::curr_id_is_one_of(const std::vector<Token::Id>& ids_array) const
+{
+    for (const auto id : ids_array) {
+        if (m_current_token.id == id)
+            return true;
+    }
+    return false;
+}
+
+
+
 void Lexer::curr_token_value_append(const char c)
 {
     m_current_token.value += c;
@@ -82,19 +99,8 @@ void Lexer::register_and_begin(Token::Id id, const char begin_content)
 
 
 /**
- * Error handling
+ *  Error handling
  */
-bool Lexer::curr_id_is_one_of(const std::vector<Token::Id>& ids_array) const
-{
-    for (const auto id : ids_array) {
-        if (m_current_token.id == id)
-            return true;
-    }
-    return false;
-}
-
-
-
 void Lexer::throw_current_state() const
 {
     throw LexerSyntaxError{m_current_token, m_source_index};
@@ -102,8 +108,103 @@ void Lexer::throw_current_state() const
 
 
 /**
- * Public interface
+ *  Public interface
  */
+Lexer::Lexer() noexcept
+    : m_char_handlers(Char_Category::CAT_COUNT)
+{
+    if (!Category_Map::is_init())
+        Category_Map::init();
+
+    // Initialize character categories handlers array
+    m_char_handlers[Char_Category::ALPHABETIC] = [this](const char c)
+    {
+        if (curr_token_is_clear()) {
+            begin_new_token(Token::IDENTIFIER);
+        }
+
+        else if (!curr_id_is_one_of({Token::IDENTIFIER, Token::LIT_STRING})) {
+            throw_current_state();
+        }
+
+        curr_token_value_append(c);
+    };
+
+
+    m_char_handlers[Char_Category::NUMERIC] = [this](const char c)
+    {
+        if (curr_token_is_clear())
+            begin_new_token(Token::LIT_NUMBER);
+
+        curr_token_value_append(c);
+    };
+
+
+    m_char_handlers[Char_Category::OPERATOR] = [this](const char c)
+    {
+        if (!curr_token_is_clear())
+        {
+            register_current_token();
+        }
+
+        begin_new_token(Token::BINARY_OP, c);
+        register_and_begin();
+    };
+
+
+    m_char_handlers[Char_Category::PUNCTUATION] = [this](const char)
+    {
+
+    };
+
+
+    m_char_handlers[Char_Category::DELIMITER] = [this](const char)
+    {
+        if (!curr_token_is_clear())
+        {
+            register_and_begin();
+        }
+    };
+
+
+    m_char_handlers[Char_Category::END_OF_FILE] = [this](const char)
+    {
+        register_and_begin(Token::END_SOURCE);
+        register_and_begin();
+    };
+
+
+    m_char_handlers[Char_Category::OTHER] = [this](const char c)
+    {
+        switch (c)
+        {
+        case '(':
+            register_and_begin(Token::BEGIN_GROUP);
+            register_and_begin();
+        break;
+
+        case ')':
+            register_and_begin(Token::END_GROUP);
+            register_and_begin();
+        break;
+
+        case '{':
+            register_and_begin(Token::BEGIN_BLOCK);
+            register_and_begin();
+        break;
+
+        case '}':
+            register_and_begin(Token::END_BLOCK);
+            register_and_begin();
+        default:
+        break;
+        }
+    };
+
+}
+
+
+
 TokenArray Lexer::tokenize(std::string_view source)
 {
     m_source_index = 0;
@@ -114,99 +215,9 @@ TokenArray Lexer::tokenize(std::string_view source)
     {
         const char c = source[m_source_index];
 
-        switch (c)
-        {
-        case ' ': case '\t': case '\n': case '\0':
-
-            if (!curr_token_is_clear())
-            {
-                register_current_token();
-                begin_new_token();
-            }
-
-        break;
-
-
-        case '0': case '1': case '2': case '3': case '4':
-        case '5': case '6': case '7': case '8': case '9':
-
-            if (curr_token_is_clear())
-                begin_new_token(Token::LIT_NUMBER);
-
-            curr_token_value_append(c);
-
-        break;
-
-
-        case '+': case '*': case '=':
-
-            if (!curr_token_is_clear())
-            {
-                register_current_token();
-            }
-
-            begin_new_token(Token::BINARY_OP, c);
-            register_current_token();
-            begin_new_token();
-
-        break;
-
-
-        case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
-        case 'g': case 'h': case 'i': case 'j': case 'k': case 'l':
-        case 'm': case 'n': case 'o': case 'p': case 'q': case 'r':
-        case 's': case 't': case 'u': case 'v': case 'w': case 'x':
-        case 'y': case 'z': case 'A': case 'B': case 'C': case 'D':
-        case 'E': case 'F': case 'G': case 'H': case 'I': case 'J':
-        case 'K': case 'L': case 'M': case 'N': case 'O': case 'P':
-        case 'Q': case 'R': case 'S': case 'T': case 'U': case 'V':
-        case 'W': case 'X': case 'Y': case 'Z': case '_':
-
-            if (curr_token_is_clear())
-            {
-                begin_new_token(Token::IDENTIFIER);
-            }
-
-            else if (!curr_id_is_one_of({Token::IDENTIFIER, Token::LIT_STRING}))
-            {
-                throw_current_state();
-            }
-
-            curr_token_value_append(c);
-
-        break;
-
-
-        case '(':
-            register_and_begin(Token::BEGIN_GROUP);
-            register_and_begin();
-        break;
-
-
-        case ')':
-            register_and_begin(Token::END_GROUP);
-            register_and_begin();
-        break;
-
-
-        case '{':
-            register_and_begin(Token::BEGIN_BLOCK);
-            register_and_begin();
-        break;
-
-
-        case '}':
-            register_and_begin(Token::END_BLOCK);
-            register_and_begin();
-        break;
-
-
-        default:
-        break;
-        }
+        std::invoke(m_char_handlers[m_category_map.category_of(c)], c);
 
         ++m_source_index;
-
     }
 
     if (!curr_token_is_clear())
